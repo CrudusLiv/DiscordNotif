@@ -1,45 +1,32 @@
 """Discord bot: headless cache-only listener.
 
-Caches every message to discord_cache.db so discord_ping.scan_pings can
-detect mentions/replies and forward them as DMs + Windows toasts.
-No channel handlers. No slash commands.
+Caches every message to the configured discord_cache.db so the ping scanner
+can detect mentions/replies and forward them as notifications.
 """
 from __future__ import annotations
 
-import os
 import sys
 from pathlib import Path
 
-PROJECT_DIR = Path(os.environ.get("CLAUDE_PROJECT_DIR") or Path(__file__).resolve().parents[2])
-sys.path.insert(0, str(PROJECT_DIR / ".claude" / "scripts"))
-sys.path.insert(0, str(PROJECT_DIR / ".claude"))
 
-import integrations._env  # noqa: F401, E402
-
-from integrations import discord_int  # noqa: E402
-
-_self_id: dict = {"id": None}
-
-
-async def on_message(message) -> None:
-    try:
-        discord_int._store_message(message, _self_id["id"])
-    except Exception as exc:
-        print(f"cache write failed: {exc}", file=sys.stderr)
-
-
-def main() -> int:
-    token = os.environ.get("DISCORD_BOT_TOKEN")
-    if not token:
-        print("DISCORD_BOT_TOKEN not set in .env", file=sys.stderr)
-        return 1
-
+def run(db_path: Path, token: str) -> int:
+    """Start the Discord bot. Blocks until disconnected. Returns exit code."""
     try:
         import discord
     except ImportError:
         print("discord.py not installed: py -m pip install -r requirements.txt",
               file=sys.stderr)
         return 1
+
+    from . import discord_int
+
+    _self_id: dict = {"id": None}
+
+    async def on_message(message) -> None:
+        try:
+            discord_int._store_message(message, _self_id["id"], db_path=db_path)
+        except Exception as exc:
+            print(f"cache write failed: {exc}", file=sys.stderr)
 
     intents = discord.Intents.default()
     intents.message_content = True
@@ -59,4 +46,15 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    # For manual testing only
+    import os
+    from pathlib import Path
+    
+    db_path = Path(os.environ.get("DISCORD_CACHE_DB", "discord_cache.db"))
+    token = os.environ.get("DISCORD_BOT_TOKEN", "")
+    
+    if not token:
+        print("DISCORD_BOT_TOKEN environment variable not set", file=sys.stderr)
+        sys.exit(1)
+    
+    sys.exit(run(db_path, token))
