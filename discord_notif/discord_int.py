@@ -80,7 +80,7 @@ def prune(retention_days: int = RETENTION_DAYS, db_path: Path | None = None) -> 
         conn.close()
 
 
-def _store_message(message, self_id: str | None) -> None:
+def _store_message(message, self_id: str | None, db_path: Path | None = None) -> None:
     is_dm = 1 if message.guild is None else 0
     is_self = 1 if self_id and str(message.author.id) == self_id else 0
     is_bot = 1 if getattr(message.author, "bot", False) else 0
@@ -99,7 +99,7 @@ def _store_message(message, self_id: str | None) -> None:
         if resolved_author is not None and getattr(resolved_author, "id", None):
             referenced_author_id = str(resolved_author.id)
 
-    conn = _connect()
+    conn = _connect(db_path)
     try:
         # If the referenced message is in our cache but discord.py didn't resolve it
         # (common for older messages), fall back to a local author lookup.
@@ -131,15 +131,16 @@ def _store_message(message, self_id: str | None) -> None:
         conn.close()
 
 
-def recent(hours: int = 24, limit: int = 50, dms_only: bool = False) -> list[dict]:
-    if not CACHE_DB.exists():
+def recent(hours: int = 24, limit: int = 50, dms_only: bool = False, db_path: Path | None = None) -> list[dict]:
+    path = db_path or CACHE_DB
+    if not path.exists():
         return []
     cutoff = time.time() - hours * 3600
     where = "created_at >= ? AND is_self = 0 AND is_bot = 0"
     params: list = [cutoff]
     if dms_only:
         where += " AND is_dm = 1"
-    conn = _connect()
+    conn = _connect(db_path)
     try:
         rows = conn.execute(
             f"SELECT * FROM messages WHERE {where} ORDER BY created_at DESC LIMIT ?",
