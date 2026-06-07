@@ -1,0 +1,40 @@
+!define APP_NAME "Discord Ping Notifier"
+!define APP_EXE "DiscordPingNotifier.exe"
+!define APP_VERSION "1.0.0"
+!define INSTALL_DIR "$PROGRAMFILES64\DiscordPingNotifier"
+!define REG_UNINSTALL "Software\Microsoft\Windows\CurrentVersion\Uninstall\DiscordPingNotifier"
+
+Name "${APP_NAME}"
+OutFile "DiscordPingNotifier-${APP_VERSION}-installer.exe"
+InstallDir "${INSTALL_DIR}"
+RequestExecutionLevel admin
+
+Section "Install"
+  SetOutPath "$INSTDIR"
+  File "dist\${APP_EXE}"
+  
+  CreateDirectory "$SMPROGRAMS\DiscordPingNotifier"
+  CreateShortCut "$SMPROGRAMS\DiscordPingNotifier\${APP_NAME}.lnk" "$INSTDIR\${APP_EXE}"
+  CreateShortCut "$SMPROGRAMS\DiscordPingNotifier\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
+  
+  WriteRegStr HKLM "${REG_UNINSTALL}" "DisplayName" "${APP_NAME}"
+  WriteRegStr HKLM "${REG_UNINSTALL}" "UninstallString" "$INSTDIR\Uninstall.exe"
+  WriteRegStr HKLM "${REG_UNINSTALL}" "DisplayVersion" "${APP_VERSION}"
+  WriteRegStr HKLM "${REG_UNINSTALL}" "InstallLocation" "$INSTDIR"
+  WriteUninstaller "$INSTDIR\Uninstall.exe"
+SectionEnd
+
+Section "Uninstall"
+  ; Stop and remove service if installed
+  ExecWait "$INSTDIR\${APP_EXE} --uninstall-service"
+  
+  Delete "$INSTDIR\${APP_EXE}"
+  Delete "$INSTDIR\Uninstall.exe"
+  RMDir "$INSTDIR"
+  
+  Delete "$SMPROGRAMS\DiscordPingNotifier\${APP_NAME}.lnk"
+  Delete "$SMPROGRAMS\DiscordPingNotifier\Uninstall.lnk"
+  RMDir "$SMPROGRAMS\DiscordPingNotifier"
+  
+  DeleteRegKey HKLM "${REG_UNINSTALL}"
+SectionEnd
