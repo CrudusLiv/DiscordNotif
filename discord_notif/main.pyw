@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import logging.handlers
 import threading
 import time
 from pathlib import Path
@@ -13,85 +14,75 @@ log = logging.getLogger(__name__)
 
 
 def _setup_logging() -> None:
-    appdata = Path.home() / "AppData" / "Local" / "DiscordPingNotifier"
-    log_dir = appdata / "logs"
+    import os
+    log_dir = Path(os.environ.get("LOCALAPPDATA", "~/.local")).expanduser() / "DiscordPingNotifier" / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
-    
-    log_file = log_dir / "discord_notif.log"
-    handler = logging.FileHandler(str(log_file))
-    handler.setLevel(logging.DEBUG)
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    handler = logging.handlers.TimedRotatingFileHandler(
+        log_dir / "app.log", when="midnight", backupCount=7
     )
-    handler.setFormatter(formatter)
-    logging.root.addHandler(handler)
-    logging.root.setLevel(logging.DEBUG)
+    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+    logging.basicConfig(level=logging.INFO, handlers=[handler, logging.StreamHandler()])
 
 
 def run_headless(stop_event=None) -> None:
     """Run the bot + periodic scanner. Blocks until stop_event is set (or forever)."""
     _setup_logging()
     log.info("Starting Discord Ping Notifier (headless mode)")
-    
+
     cfg = config.load()
     token = credential_mgr.load_token()
-    
+
     if not token:
         log.error("No Discord token found in Credential Manager")
         return
-    
+
     if not cfg.get("user_id"):
         log.error("User ID not configured")
         return
-    
-    db_path = Path(cfg.get("cache_location") or "discord_cache.db")
+
+    cache_dir = Path(cfg.get("cache_location") or ".")
+    db_path = cache_dir / "discord_cache.db"
+    state_path = cache_dir / "state.json"
     user_id = cfg["user_id"]
-    scan_freq = cfg.get("scan_frequency_minutes", 15)
-    
-    # Start bot in background thread
+    scan_freq = int(cfg.get("scan_frequency_minutes", 15))
+
     bot_thread = threading.Thread(
         target=lambda: discord_bot.run(db_path, token),
         daemon=True,
-        name="DiscordBot"
+        name="DiscordBot",
     )
     bot_thread.start()
-    
-    # Give bot time to connect
+
+    # Give bot time to connect before first scan
     time.sleep(2)
-    
-    # Main scan loop
+
     while True:
         try:
-            if stop_event and stop_event.is_set():
+            wait_ms = scan_freq * 60 * 1000
+            if stop_event is not None and _win32_wait(stop_event, wait_ms):
                 log.info("Stop event received, shutting down")
                 break
-            
-            # Scan for new pings
-            pings = scan_pings(db_path, user_id)
-            
+            elif stop_event is None:
+                time.sleep(scan_freq * 60)
+
+            log.info("Scanning for pings…")
+            pings = scan_pings(db_path, user_id=user_id, state_path=state_path)
+
             if pings:
-                log.info(f"Found {len(pings)} new pings")
+                log.info("Found %d new ping(s)", len(pings))
                 from . import notifier
                 for ping in pings:
                     try:
                         notifier.notify(ping, token=token, user_id=user_id)
                     except Exception as exc:
-                        log.error(f"Failed to notify for ping {ping.get('id')}: {exc}")
-            
-            # Prune old messages
+                        log.error("Failed to notify for ping %s: %s", ping.get("id"), exc)
+
             deleted = discord_int.prune(retention_days=7, db_path=db_path)
             if deleted:
-                log.debug(f"Pruned {deleted} old messages")
-            
-            # Wait for next scan
-            wait_time = scan_freq * 60
-            if stop_event:
-                stop_event.wait(wait_time)
-            else:
-                time.sleep(wait_time)
-        
+                log.debug("Pruned %d old message(s)", deleted)
+
         except Exception as exc:
-            log.error(f"Scan loop error: {exc}", exc_info=True)
+            log.error("Scan loop error: %s", exc, exc_info=True)
             time.sleep(5)
 
 

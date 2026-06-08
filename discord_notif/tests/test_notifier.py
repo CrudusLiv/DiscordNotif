@@ -41,12 +41,14 @@ def test_send_toast_sets_audio():
 async def test_send_dm_fetches_user_and_sends():
     mock_client = MagicMock()
     mock_user = MagicMock()
-    mock_dm = MagicMock()
     mock_client.fetch_user = AsyncMock(return_value=mock_user)
+    mock_client.close = AsyncMock()
     mock_user.send = AsyncMock()
-    
+
     await notifier._send_dm_payload(mock_client, "123", "Title", "Body")
     mock_client.fetch_user.assert_called_once_with(123)
+    mock_user.send.assert_called_once()
+    mock_client.close.assert_called_once()
 
 
 def test_notify_calls_toast_and_dm(monkeypatch):

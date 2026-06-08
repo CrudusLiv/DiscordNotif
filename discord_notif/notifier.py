@@ -18,19 +18,22 @@ def send_toast(title: str, body: str) -> None:
 async def _send_dm_payload(client, user_id: str, title: str, body: str) -> None:
     user = await client.fetch_user(int(user_id))
     await user.send(f"**{title}**\n{body}")
+    await client.close()
 
 
 async def _dm_coroutine(token: str, user_id: str, title: str, body: str) -> None:
     intents = discord.Intents.default()
-    intents.message_content = True
+    intents.dm_messages = True
     client = discord.Client(intents=intents)
-    
-    async with client:
+
+    @client.event
+    async def on_ready() -> None:
         try:
             await _send_dm_payload(client, user_id, title, body)
-        except Exception as exc:
-            print(f"Failed to send DM: {exc}")
-    await client.close()
+        except Exception:
+            await client.close()
+
+    await client.start(token)
 
 
 def _run_dm(token: str, user_id: str, title: str, body: str) -> None:
