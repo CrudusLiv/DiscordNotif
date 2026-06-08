@@ -71,8 +71,24 @@ def _run_gui(setup: bool = False) -> None:
     from PyQt6.QtWidgets import QApplication
     from . import config
 
+    from PyQt6.QtGui import QPalette, QColor
+
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
+
+    palette = QPalette()
+    palette.setColor(QPalette.ColorRole.Window,          QColor("#f5f5f5"))
+    palette.setColor(QPalette.ColorRole.WindowText,      QColor("#1a1a1a"))
+    palette.setColor(QPalette.ColorRole.Base,            QColor("#ffffff"))
+    palette.setColor(QPalette.ColorRole.AlternateBase,   QColor("#ebebeb"))
+    palette.setColor(QPalette.ColorRole.Text,            QColor("#1a1a1a"))
+    palette.setColor(QPalette.ColorRole.Button,          QColor("#e0e0e0"))
+    palette.setColor(QPalette.ColorRole.ButtonText,      QColor("#1a1a1a"))
+    palette.setColor(QPalette.ColorRole.Highlight,       QColor("#5865f2"))
+    palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#ffffff"))
+    palette.setColor(QPalette.ColorRole.ToolTipBase,     QColor("#ffffff"))
+    palette.setColor(QPalette.ColorRole.ToolTipText,     QColor("#1a1a1a"))
+    app.setPalette(palette)
     
     # Check if first run
     if config.is_first_run() or setup:
