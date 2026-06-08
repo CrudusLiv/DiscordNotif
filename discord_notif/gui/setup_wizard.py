@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QColor, QPixmap
 from PyQt6.QtWidgets import (
     QDialog, QFileDialog, QLabel, QLineEdit, QComboBox,
     QPushButton, QVBoxLayout, QHBoxLayout, QWizard, QWizardPage,
@@ -19,6 +20,15 @@ class SetupWizard(QWizard):
         super().__init__()
         self.setWindowTitle("Discord Ping Notifier - Setup")
         self.setFixedWidth(500)
+
+        # AeroStyle (Windows default) renders the header via the OS glass
+        # pipeline — it ignores the app palette and turns black in dark mode.
+        # ModernStyle routes through Qt's own painter so the BannerPixmap
+        # and palette take effect.
+        self.setWizardStyle(QWizard.WizardStyle.ModernStyle)
+        banner = QPixmap(500, 58)
+        banner.fill(QColor("#f5f5f5"))
+        self.setPixmap(QWizard.WizardPixmap.BannerPixmap, banner)
         
         # Screen 1: Welcome
         self.welcome_page = QWizardPage()
