@@ -70,8 +70,9 @@ def main() -> None:
 def _run_gui(setup: bool = False) -> None:
     from PyQt6.QtWidgets import QApplication
     from . import config
-    
+
     app = QApplication(sys.argv)
+    app.setStyle("Fusion")
     
     # Check if first run
     if config.is_first_run() or setup:
