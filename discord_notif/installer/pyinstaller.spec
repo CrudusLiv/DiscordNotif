@@ -1,0 +1,54 @@
+# -*- mode: python ; coding: utf-8 -*-
+block_cipher = None
+
+a = Analysis(
+    ['../../launch.py'],
+    pathex=['../..'],
+    binaries=[],
+    datas=[
+        ('../gui/styles.qss', 'discord_notif/gui'),
+    ],
+    hiddenimports=[
+        'discord_notif',
+        'discord_notif.__main__',
+        'discord_notif.credential_mgr',
+        'discord_notif.config',
+        'discord_notif.notifier',
+        'discord_notif.service',
+        'discord_notif.discord_bot',
+        'discord_notif.discord_int',
+        'discord_notif.discord_ping',
+        'discord_notif.gui',
+        'discord_notif.gui.setup_wizard',
+        'discord_notif.gui.system_tray',
+        'discord_notif.gui.dashboard',
+        'discord_notif.gui.settings_dialog',
+        'win32timezone',
+        'pkg_resources.py2_warn',
+    ],
+    hookspath=[],
+    runtime_hooks=[],
+    excludes=[],
+    win_no_prefer_redirects=False,
+    win_private_assemblies=False,
+    cipher=block_cipher,
+    noarchive=False,
+)
+pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
+exe = EXE(
+    pyz,
+    a.scripts,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    [],
+    name='DiscordPingNotifier',
+    debug=False,
+    bootloader_ignore_signals=False,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    runtime_tmpdir=None,
+    console=False,
+    icon=None,
+)
