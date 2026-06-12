@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import sys
 from PyQt6.QtWidgets import (
-    QComboBox, QDialog, QFileDialog, QFormLayout,
+    QCheckBox, QComboBox, QDialog, QFileDialog, QFormLayout,
     QHBoxLayout, QLabel, QLineEdit, QPushButton, QVBoxLayout,
 )
 
@@ -47,7 +48,11 @@ class SettingsDialog(QDialog):
         self.freq_input.addItems(["5", "10", "15", "30", "60"])
         self.freq_input.setCurrentText(str(cfg.get("scan_frequency_minutes", 15)))
         form.addRow("Scan Frequency (min):", self.freq_input)
-        
+
+        self.startup_checkbox = QCheckBox("Run on Windows startup")
+        self.startup_checkbox.setChecked(config.get_startup())
+        form.addRow("", self.startup_checkbox)
+
         # Service management
         form.addRow(QLabel(""))  # Separator
         form.addRow(QLabel("<b>Windows Service</b>"))
@@ -98,7 +103,17 @@ class SettingsDialog(QDialog):
             cfg["cache_location"] = cache_path
         cfg["scan_frequency_minutes"] = scan_freq
         config.save(cfg)
-        
+
+        if self.startup_checkbox.isChecked():
+            if getattr(sys, "frozen", False):
+                config.set_startup(True, sys.executable)
+            else:
+                from PyQt6.QtWidgets import QMessageBox
+                QMessageBox.warning(self, "Startup", "Run-on-startup only works with the built EXE, not from source.")
+                self.startup_checkbox.setChecked(False)
+        else:
+            config.set_startup(False)
+
         self.close()
     
     def _install_service(self) -> None:

@@ -4,8 +4,14 @@ import threading
 from pathlib import Path
 
 from PyQt6.QtCore import QTimer
-from PyQt6.QtGui import QIcon
+from PyQt6.QtGui import QColor, QIcon, QPixmap
 from PyQt6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
+
+
+def _make_icon() -> QIcon:
+    px = QPixmap(32, 32)
+    px.fill(QColor("#5865f2"))
+    return QIcon(px)
 
 from .. import config, main
 from .dashboard import Dashboard
@@ -16,7 +22,7 @@ class SystemTrayApp:
     
     def __init__(self):
         self.app = QApplication.instance()
-        self.tray_icon = QSystemTrayIcon(self.app)
+        self.tray_icon = QSystemTrayIcon(_make_icon(), self.app)
         self.dashboard = None
         self.scan_thread = None
         

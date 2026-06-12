@@ -5,12 +5,11 @@ a = Analysis(
     ['../../launch.py'],
     pathex=['../..'],
     binaries=[],
-    datas=[
-        ('../gui/styles.qss', 'discord_notif/gui'),
-    ],
+    datas=[],
     hiddenimports=[
         'discord_notif',
         'discord_notif.__main__',
+        'discord_notif.main',
         'discord_notif.credential_mgr',
         'discord_notif.config',
         'discord_notif.notifier',

@@ -9,8 +9,7 @@ def save_token(token: str) -> None:
         {
             "TargetName": _SERVICE_NAME,
             "Type": win32cred.CRED_TYPE_GENERIC,
-            "LogonType": win32cred.CRED_TYPE_GENERIC,
-            "CredentialBlob": token.encode("utf-16-le"),
+            "CredentialBlob": token,
             "Persist": win32cred.CRED_PERSIST_LOCAL_MACHINE,
         },
         0,
@@ -20,7 +19,8 @@ def save_token(token: str) -> None:
 def load_token() -> str | None:
     try:
         cred = win32cred.CredRead(_SERVICE_NAME, win32cred.CRED_TYPE_GENERIC)
-        return cred["CredentialBlob"].decode("utf-16-le")
+        blob = cred["CredentialBlob"]
+        return blob.decode("utf-16-le") if isinstance(blob, bytes) else blob
     except Exception:
         return None
 

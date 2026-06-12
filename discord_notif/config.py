@@ -70,3 +70,31 @@ def is_first_run() -> bool:
         return False
     except FileNotFoundError:
         return True
+
+
+_STARTUP_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
+_STARTUP_NAME = "DiscordPingNotifier"
+
+
+def set_startup(enabled: bool, exe_path: str = "") -> None:
+    hkey = winreg.OpenKey(winreg.HKEY_CURRENT_USER, _STARTUP_KEY, access=winreg.KEY_SET_VALUE)
+    try:
+        if enabled:
+            winreg.SetValueEx(hkey, _STARTUP_NAME, 0, winreg.REG_SZ, exe_path)
+        else:
+            try:
+                winreg.DeleteValue(hkey, _STARTUP_NAME)
+            except FileNotFoundError:
+                pass
+    finally:
+        winreg.CloseKey(hkey)
+
+
+def get_startup() -> bool:
+    try:
+        hkey = winreg.OpenKey(winreg.HKEY_CURRENT_USER, _STARTUP_KEY)
+        winreg.QueryValueEx(hkey, _STARTUP_NAME)
+        winreg.CloseKey(hkey)
+        return True
+    except FileNotFoundError:
+        return False

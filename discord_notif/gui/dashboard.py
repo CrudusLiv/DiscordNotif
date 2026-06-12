@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import (
 )
 
 from .. import config, service
+from ..discord_int import recent as recent_messages
 from ..discord_ping import scan_pings
 
 
@@ -24,7 +25,8 @@ class Dashboard(QDialog):
         self.setFixedSize(700, 500)
         
         cfg = config.load()
-        self.db_path = Path(cfg.get("cache_location", "discord_cache.db"))
+        db_path = Path(cfg.get("cache_location", "discord_cache.db"))
+        self.db_path = db_path / "discord_cache.db" if db_path.is_dir() else db_path
         self.user_id = cfg.get("user_id", "")
         
         # Status section
@@ -68,11 +70,9 @@ class Dashboard(QDialog):
         except Exception:
             self.service_label.setText("Service: Unknown")
         
-        # Update recent pings
+        # Update recent pings (read-only — don't use scan_pings which marks pings seen)
         try:
-            pings = scan_pings(self.db_path, self.user_id)
-            # Show only last 10, most recent first
-            pings = sorted(pings, key=lambda p: p.get("created_at", 0), reverse=True)[:10]
+            pings = recent_messages(db_path=self.db_path)[:10]
             
             self.table.setRowCount(len(pings))
             for row, ping in enumerate(pings):
@@ -91,7 +91,8 @@ class Dashboard(QDialog):
     
     def _manual_scan(self) -> None:
         try:
-            pings = scan_pings(self.db_path, self.user_id)
+            state_path = self.db_path.parent / "discord_last_tick.json"
+            pings = scan_pings(self.db_path, user_id=self.user_id, state_path=state_path)
             if pings:
                 from .. import notifier, credential_mgr
                 token = credential_mgr.load_token()
