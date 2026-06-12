@@ -90,6 +90,23 @@ def set_startup(enabled: bool, exe_path: str = "") -> None:
         winreg.CloseKey(hkey)
 
 
+def uninstall() -> None:
+    """Remove all app data: registry config, startup entry, and cache files."""
+    # Remove startup entry
+    set_startup(False)
+
+    # Remove registry config key
+    try:
+        winreg.DeleteKey(winreg.HKEY_CURRENT_USER, _REG_KEY)
+    except FileNotFoundError:
+        pass
+
+    # Remove cache directory
+    import shutil
+    if APPDATA.exists():
+        shutil.rmtree(APPDATA, ignore_errors=True)
+
+
 def get_startup() -> bool:
     try:
         hkey = winreg.OpenKey(winreg.HKEY_CURRENT_USER, _STARTUP_KEY)

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import sys
 from PyQt6.QtWidgets import (
-    QCheckBox, QComboBox, QDialog, QFileDialog, QFormLayout,
+    QApplication, QCheckBox, QComboBox, QDialog, QFileDialog, QFormLayout,
     QHBoxLayout, QLabel, QLineEdit, QPushButton, QVBoxLayout,
 )
 
@@ -70,9 +70,13 @@ class SettingsDialog(QDialog):
         button_layout = QHBoxLayout()
         save_btn = QPushButton("Save")
         save_btn.clicked.connect(self._save_settings)
+        uninstall_btn = QPushButton("Uninstall")
+        uninstall_btn.setStyleSheet("color: #c0392b;")
+        uninstall_btn.clicked.connect(self._uninstall_all)
         close_btn = QPushButton("Close")
         close_btn.clicked.connect(self.close)
         button_layout.addWidget(save_btn)
+        button_layout.addWidget(uninstall_btn)
         button_layout.addWidget(close_btn)
         
         # Main layout
@@ -116,6 +120,24 @@ class SettingsDialog(QDialog):
 
         self.close()
     
+    def _uninstall_all(self) -> None:
+        from PyQt6.QtWidgets import QMessageBox
+        reply = QMessageBox.question(
+            self, "Uninstall",
+            "Remove all credentials, config, cache, and startup entry?\n\nThe app will close.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+        from .. import config, credential_mgr, service as svc
+        try:
+            svc.uninstall()
+        except Exception:
+            pass
+        credential_mgr.delete_token()
+        config.uninstall()
+        QApplication.instance().quit()
+
     def _install_service(self) -> None:
         try:
             service.install()

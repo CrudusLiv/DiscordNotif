@@ -35,9 +35,25 @@ def main() -> None:
         action="store_true",
         help="Uninstall Windows Service",
     )
-    
+    parser.add_argument(
+        "--uninstall",
+        action="store_true",
+        help="Remove all app data and exit",
+    )
+
     args = parser.parse_args()
     
+    if args.uninstall:
+        from . import config, credential_mgr, service as svc
+        try:
+            svc.uninstall()
+        except Exception:
+            pass
+        credential_mgr.delete_token()
+        config.uninstall()
+        print("Uninstalled successfully.")
+        return
+
     if args.install_service:
         from . import service
         try:
