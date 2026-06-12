@@ -1,6 +1,8 @@
 !define APP_NAME "Discord Ping Notifier"
 !define APP_EXE "DiscordPingNotifier.exe"
-!define APP_VERSION "1.0.0"
+!ifndef APP_VERSION
+  !define APP_VERSION "1.0.0"
+!endif
 !define INSTALL_DIR "$PROGRAMFILES64\DiscordPingNotifier"
 !define REG_UNINSTALL "Software\Microsoft\Windows\CurrentVersion\Uninstall\DiscordPingNotifier"
 
