@@ -35,7 +35,9 @@ jobs:
         working-directory: discord_notif/installer
 
       - name: Install NSIS
-        run: choco install nsis -y
+        run: |
+          choco install nsis -y
+          echo "C:\Program Files (x86)\NSIS" >> $env:GITHUB_PATH
 
       - name: Build installer with NSIS
         run: makensis /DAPP_VERSION=${{ env.VERSION }} discord_ping_notifier.nsis
