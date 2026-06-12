@@ -94,11 +94,14 @@ def _run_gui(setup: bool = False) -> None:
     if config.is_first_run() or setup:
         from .gui.setup_wizard import SetupWizard
         wizard = SetupWizard()
-        sys.exit(wizard.exec())
-    else:
-        from .gui.system_tray import SystemTrayApp
-        tray = SystemTrayApp()
-        sys.exit(app.exec())
+        result = wizard.exec()
+        if result != 1 or config.is_first_run():
+            sys.exit(result)
+        # Wizard completed successfully — fall through to tray
+
+    from .gui.system_tray import SystemTrayApp
+    tray = SystemTrayApp()
+    sys.exit(app.exec())
 
 
 if __name__ == "__main__":
