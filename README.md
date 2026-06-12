@@ -45,8 +45,6 @@ The EXE is written to `discord_notif/installer/dist/DiscordPingNotifier.exe`.
 ## Run from source
 
 ```
-cd discord_notif
-
 # GUI mode — setup wizard on first run, then system tray
 py -m discord_notif
 
@@ -88,7 +86,7 @@ After finishing, the app goes to the system tray and starts the scan loop.
 | `credential_mgr.py` | Win32 Credential Manager wrapper for token storage |
 | `config.py` | Registry + JSON config; `is_first_run()` detection |
 | `service.py` | Windows Service install / uninstall / status |
-| `main.pyw` | Headless scan loop used by both service mode and `--headless` |
+| `main.py` | Headless scan loop used by both service mode and `--headless` |
 | `__main__.py` | CLI entry point; routes to wizard, tray, or headless |
 | `gui/setup_wizard.py` | 5-page first-run wizard (`QWizard`) |
 | `gui/system_tray.py` | System tray icon + context menu |
