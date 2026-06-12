@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 
 import sys
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtWidgets import (
     QApplication, QCheckBox, QComboBox, QDialog, QFileDialog, QFormLayout,
     QHBoxLayout, QLabel, QLineEdit, QPushButton, QVBoxLayout,
@@ -18,6 +20,9 @@ class SettingsDialog(QDialog):
         super().__init__()
         self.setWindowTitle("Discord Ping Notifier - Settings")
         self.setFixedWidth(500)
+        _icon_path = Path(__file__).parent.parent / "assets" / "icon.ico"
+        if _icon_path.exists():
+            self.setWindowIcon(QIcon(str(_icon_path)))
         
         cfg = config.load()
         
@@ -79,8 +84,18 @@ class SettingsDialog(QDialog):
         button_layout.addWidget(uninstall_btn)
         button_layout.addWidget(close_btn)
         
+        # Logo header
+        logo_layout = QHBoxLayout()
+        _logo_path = Path(__file__).parent.parent / "assets" / "DiscordNotif.png"
+        if _logo_path.exists():
+            logo_label = QLabel()
+            logo_label.setPixmap(QPixmap(str(_logo_path)).scaledToHeight(48, Qt.TransformationMode.SmoothTransformation))
+            logo_layout.addWidget(logo_label)
+        logo_layout.addStretch()
+
         # Main layout
         main_layout = QVBoxLayout()
+        main_layout.addLayout(logo_layout)
         main_layout.addLayout(form)
         main_layout.addStretch()
         main_layout.addLayout(button_layout)

@@ -9,6 +9,9 @@ from PyQt6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
 
 
 def _make_icon() -> QIcon:
+    icon_path = Path(__file__).parent.parent / "assets" / "icon.ico"
+    if icon_path.exists():
+        return QIcon(str(icon_path))
     px = QPixmap(32, 32)
     px.fill(QColor("#5865f2"))
     return QIcon(px)

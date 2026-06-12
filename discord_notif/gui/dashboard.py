@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 from PyQt6.QtCore import QTimer, Qt
+from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtWidgets import (
     QDialog, QHBoxLayout, QHeaderView, QLabel, QProgressBar,
     QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
@@ -23,6 +24,9 @@ class Dashboard(QDialog):
         super().__init__()
         self.setWindowTitle("Discord Ping Notifier - Dashboard")
         self.setFixedSize(700, 500)
+        _icon_path = Path(__file__).parent.parent / "assets" / "icon.ico"
+        if _icon_path.exists():
+            self.setWindowIcon(QIcon(str(_icon_path)))
         
         cfg = config.load()
         db_path = Path(cfg.get("cache_location", "discord_cache.db"))
@@ -47,8 +51,18 @@ class Dashboard(QDialog):
         self.table.setHorizontalHeaderLabels(["From", "Channel", "Time", "Message"])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         
+        # Logo header
+        logo_layout = QHBoxLayout()
+        _logo_path = Path(__file__).parent.parent / "assets" / "DiscordNotif.png"
+        if _logo_path.exists():
+            logo_label = QLabel()
+            logo_label.setPixmap(QPixmap(str(_logo_path)).scaledToHeight(48, Qt.TransformationMode.SmoothTransformation))
+            logo_layout.addWidget(logo_label)
+        logo_layout.addStretch()
+
         # Main layout
         main_layout = QVBoxLayout()
+        main_layout.addLayout(logo_layout)
         main_layout.addLayout(status_layout)
         main_layout.addWidget(QLabel("Recent Pings (last 10):"))
         main_layout.addWidget(self.table)
