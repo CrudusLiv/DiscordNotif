@@ -19,11 +19,10 @@ import os
 import re
 import sqlite3
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-KL = timezone(timedelta(hours=8))
 SEEN_TTL_SEC = 24 * 3600
 _MENTION_RE = re.compile(r"<@!?(\d+)>")
 
@@ -116,7 +115,7 @@ def scan_pings(
         new_pings.append(r)
         state["seen_message_ids"].append({"id": r["id"], "t": r["created_at"]})
 
-    state["last_tick"] = datetime.fromtimestamp(now, tz=KL).isoformat()
+    state["last_tick"] = datetime.fromtimestamp(now).astimezone().isoformat()
     _save_state(state_path, state)
     return new_pings
 

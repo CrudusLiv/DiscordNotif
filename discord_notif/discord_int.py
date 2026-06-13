@@ -14,15 +14,13 @@ from the cache.
 from __future__ import annotations
 
 import json
-import os
 import sqlite3
 import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-PROJECT_DIR = Path(os.environ.get("CLAUDE_PROJECT_DIR") or Path(__file__).resolve().parents[1])
-CACHE_DB = PROJECT_DIR / "discord_cache.db"
+CACHE_DB = Path(__file__).resolve().parents[1] / "discord_cache.db"
 RETENTION_DAYS = 7
 
 SCHEMA = """
