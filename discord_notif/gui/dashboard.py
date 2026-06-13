@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import threading
 import time
 from datetime import datetime
 from pathlib import Path
@@ -104,6 +105,9 @@ class Dashboard(QDialog):
             print(f"Dashboard update error: {exc}")
     
     def _manual_scan(self) -> None:
+        threading.Thread(target=self._do_scan, daemon=True, name="ManualScan").start()
+
+    def _do_scan(self) -> None:
         try:
             state_path = self.db_path.parent / "discord_last_tick.json"
             pings = scan_pings(self.db_path, user_id=self.user_id, state_path=state_path)
@@ -111,9 +115,7 @@ class Dashboard(QDialog):
                 from .. import notifier, credential_mgr
                 token = credential_mgr.load_token()
                 if token:
-                    for ping in pings:
-                        notifier.notify(ping, token=token, user_id=self.user_id)
-            self._update_status()
+                    notifier.notify_all(pings, token=token, user_id=self.user_id)
         except Exception as exc:
             print(f"Manual scan error: {exc}")
     

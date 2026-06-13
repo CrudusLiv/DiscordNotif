@@ -9,7 +9,7 @@ def save_token(token: str) -> None:
         {
             "TargetName": _SERVICE_NAME,
             "Type": win32cred.CRED_TYPE_GENERIC,
-            "CredentialBlob": token,
+            "CredentialBlob": token.encode("utf-16-le"),
             "Persist": win32cred.CRED_PERSIST_LOCAL_MACHINE,
         },
         0,

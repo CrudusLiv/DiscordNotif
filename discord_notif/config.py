@@ -57,9 +57,10 @@ def save(cfg: dict) -> None:
             else:
                 winreg.SetValueEx(hkey, key, 0, winreg.REG_SZ, str(value))
         winreg.CloseKey(hkey)
-    except Exception:
-        pass
-    
+    except Exception as exc:
+        import sys
+        print(f"Warning: registry save failed ({exc}), falling back to JSON only.", file=sys.stderr)
+
     # Save to JSON as backup
     CONFIG_JSON.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
 

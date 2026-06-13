@@ -38,33 +38,29 @@ def test_send_toast_sets_audio():
 
 
 @pytest.mark.asyncio
-async def test_send_dm_fetches_user_and_sends():
+async def test_send_all_dms_starts_client_with_token():
+    """_send_all_dms should create a discord.Client and start it with the given token."""
     mock_client = MagicMock()
-    mock_user = MagicMock()
-    mock_client.fetch_user = AsyncMock(return_value=mock_user)
-    mock_client.close = AsyncMock()
-    mock_user.send = AsyncMock()
+    mock_client.start = AsyncMock()
+    mock_client.event = lambda f: f  # pass-through decorator
 
-    await notifier._send_dm_payload(mock_client, "123", "Title", "Body")
-    mock_client.fetch_user.assert_called_once_with(123)
-    mock_user.send.assert_called_once()
-    mock_client.close.assert_called_once()
+    with patch("discord_notif.notifier.discord.Client", return_value=mock_client):
+        with patch("discord_notif.notifier.discord.Intents"):
+            await notifier._send_all_dms("mytoken", "123", [])
+
+    mock_client.start.assert_called_once_with("mytoken")
 
 
-def test_notify_calls_toast_and_dm(monkeypatch):
+def test_notify_all_calls_toast_and_dm(monkeypatch):
     toast_calls = []
-    
-    def mock_toast(title, body):
-        toast_calls.append((title, body))
-    
-    monkeypatch.setattr(notifier, "send_toast", mock_toast)
-    dm_calls = []
-    
-    def mock_run_dm(token, user_id, title, body):
-        dm_calls.append((token, user_id, title, body))
-    
-    monkeypatch.setattr(notifier, "_run_dm", mock_run_dm)
-    
-    notifier.notify(_PING, token="token123", user_id="user456")
+    monkeypatch.setattr(notifier, "send_toast", lambda t, b: toast_calls.append((t, b)))
+
+    run_calls = []
+    monkeypatch.setattr(notifier.asyncio, "run", lambda coro: run_calls.append(coro))
+
+    with patch("discord_notif.discord_ping.format_toast", return_value=("Title", "Body")):
+        with patch.object(notifier, "_build_embed", return_value=MagicMock()):
+            notifier.notify_all([_PING], token="tok", user_id="456")
+
     assert len(toast_calls) == 1
-    assert len(dm_calls) == 1
+    assert len(run_calls) == 1

@@ -6,10 +6,11 @@ can detect mentions/replies and forward them as notifications.
 from __future__ import annotations
 
 import sys
+import threading
 from pathlib import Path
 
 
-def run(db_path: Path, token: str) -> int:
+def run(db_path: Path, token: str, ready_event: threading.Event | None = None) -> int:
     """Start the Discord bot. Blocks until disconnected. Returns exit code."""
     try:
         import discord
@@ -39,6 +40,8 @@ def run(db_path: Path, token: str) -> int:
     async def on_ready() -> None:
         _self_id["id"] = str(client.user.id) if client.user else None
         print(f"Connected as {client.user} (id={_self_id['id']}) — cache-only mode")
+        if ready_event is not None:
+            ready_event.set()
 
     client.event(on_message)
     client.run(token)

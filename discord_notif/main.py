@@ -6,8 +6,12 @@ import time
 from pathlib import Path
 
 
-def run_headless() -> None:
-    """Run bot + ping scanner loop indefinitely (no GUI)."""
+def run_headless(stop_event=None) -> None:
+    """Run bot + ping scanner loop indefinitely (no GUI).
+
+    stop_event: optional Win32 event handle (from service) or threading.Event;
+                when set, the loop exits cleanly after the current scan.
+    """
     from . import config, credential_mgr, discord_bot
     from .discord_ping import scan_pings
     from .notifier import notify_all
@@ -19,22 +23,25 @@ def run_headless() -> None:
         return
 
     user_id: str = cfg.get("user_id", "")
-    db_path = Path(cfg.get("cache_location", str(
-        Path.home() / "AppData" / "Local" / "DiscordPingNotifier" / "discord_cache.db"
-    )))
+    db_path = Path(cfg.get("cache_location", str(config.APPDATA / "discord_cache.db")))
     if db_path.is_dir():
         db_path = db_path / "discord_cache.db"
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+
     scan_interval = int(cfg.get("scan_frequency_minutes", 15)) * 60
     state_path = db_path.parent / "discord_last_tick.json"
 
+    ready_event = threading.Event()
     bot_thread = threading.Thread(
         target=discord_bot.run,
         args=(db_path, token),
+        kwargs={"ready_event": ready_event},
         daemon=True,
         name="BotThread",
     )
     bot_thread.start()
-    time.sleep(10)  # wait for bot to connect before first scan
+    if not ready_event.wait(timeout=30):
+        print("Warning: bot did not connect within 30 s, proceeding anyway.", file=sys.stderr)
 
     while True:
         print(f"[scan] running — db={db_path} user_id={user_id}", flush=True)
@@ -50,4 +57,17 @@ def run_headless() -> None:
                     print(f"notify error: {exc}", file=sys.stderr, flush=True)
         except Exception as exc:
             print(f"scan error: {exc}", file=sys.stderr, flush=True)
-        time.sleep(scan_interval)
+
+        # Honour stop_event (Win32 handle from service, or threading.Event from tests).
+        if stop_event is not None:
+            try:
+                import win32event
+                result = win32event.WaitForSingleObject(stop_event, scan_interval * 1000)
+                if result == win32event.WAIT_OBJECT_0:
+                    break
+            except ImportError:
+                # Fallback for threading.Event-style stop_event
+                if stop_event.wait(timeout=scan_interval):
+                    break
+        else:
+            time.sleep(scan_interval)
