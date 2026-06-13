@@ -1,5 +1,4 @@
 # -*- mode: python ; coding: utf-8 -*-
-block_cipher = None
 
 a = Analysis(
     ['../../launch.py'],
@@ -23,17 +22,13 @@ a = Analysis(
         'discord_notif.gui.dashboard',
         'discord_notif.gui.settings_dialog',
         'win32timezone',
-        'pkg_resources.py2_warn',
     ],
     hookspath=[],
     runtime_hooks=[],
     excludes=[],
-    win_no_prefer_redirects=False,
-    win_private_assemblies=False,
-    cipher=block_cipher,
     noarchive=False,
 )
-pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
+pyz = PYZ(a.pure)
 exe = EXE(
     pyz,
     a.scripts,
@@ -45,7 +40,7 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
+    upx=False,
     upx_exclude=[],
     runtime_tmpdir=None,
     console=False,
