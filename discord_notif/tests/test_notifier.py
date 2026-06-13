@@ -53,7 +53,7 @@ async def test_send_all_dms_starts_client_with_token():
 
 def test_notify_all_calls_toast_and_dm(monkeypatch):
     toast_calls = []
-    monkeypatch.setattr(notifier, "send_toast", lambda t, b: toast_calls.append((t, b)))
+    monkeypatch.setattr(notifier, "send_toast", lambda t, b, jump_url=None: toast_calls.append((t, b)))
 
     run_calls = []
     monkeypatch.setattr(notifier.asyncio, "run", lambda coro: run_calls.append(coro))

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import sys
+import threading
 from pathlib import Path
 
-import sys
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtWidgets import (
     QApplication, QCheckBox, QComboBox, QDialog, QFileDialog, QFormLayout,
@@ -38,7 +39,15 @@ class SettingsDialog(QDialog):
         token = credential_mgr.load_token()
         if token:
             self.token_input.setText(token)
-        form.addRow("Discord Token:", self.token_input)
+        token_layout = QHBoxLayout()
+        token_layout.addWidget(self.token_input)
+        self._test_btn = QPushButton("Test")
+        self._test_btn.setFixedWidth(50)
+        self._test_btn.clicked.connect(self._test_token)
+        token_layout.addWidget(self._test_btn)
+        self._token_status = QLabel("")
+        token_layout.addWidget(self._token_status)
+        form.addRow("Discord Token:", token_layout)
         
         cache_layout = QHBoxLayout()
         self.cache_input = QLineEdit()
@@ -106,6 +115,38 @@ class SettingsDialog(QDialog):
         main_layout.addLayout(button_layout)
         self.setLayout(main_layout)
     
+    def _test_token(self) -> None:
+        token = self.token_input.text().strip()
+        if not token:
+            self._token_status.setText("Enter a token.")
+            return
+        self._test_btn.setEnabled(False)
+        self._token_status.setText("Testing…")
+        self._token_status.setStyleSheet("")
+        result: dict = {"value": ..., "done": False}
+
+        def _run() -> None:
+            from .. import discord_bot
+            result["value"] = discord_bot.test_token(token)
+            result["done"] = True
+
+        threading.Thread(target=_run, daemon=True).start()
+
+        def _poll() -> None:
+            if not result["done"]:
+                QTimer.singleShot(200, _poll)
+                return
+            self._test_btn.setEnabled(True)
+            name = result["value"]
+            if name:
+                self._token_status.setText(f"✓ {name}")
+                self._token_status.setStyleSheet("color: green;")
+            else:
+                self._token_status.setText("✗ Invalid")
+                self._token_status.setStyleSheet("color: red;")
+
+        QTimer.singleShot(200, _poll)
+
     def _choose_cache_location(self) -> None:
         path = QFileDialog.getExistingDirectory(self, "Select Cache Location")
         if path:

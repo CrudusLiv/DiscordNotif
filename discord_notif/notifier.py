@@ -11,9 +11,11 @@ _APP_ID = "DiscordPingNotifier"
 _BLURPLE = 0x5865F2
 
 
-def send_toast(title: str, body: str) -> None:
+def send_toast(title: str, body: str, jump_url: str | None = None) -> None:
     toast = Notification(app_id=_APP_ID, title=title, msg=body, duration="long")
     toast.set_audio(audio.Default, loop=False)
+    if jump_url:
+        toast.add_actions(label="View in Discord", launch=jump_url)
     toast.show()
 
 
@@ -66,10 +68,12 @@ def notify_all(pings: list[dict], *, token: str, user_id: str) -> None:
     """Send toast + DM for every ping. All DMs go in one bot session."""
     from .discord_ping import format_toast
 
+    from .discord_ping import message_jump_url
+
     embeds: list[discord.Embed] = []
     for ping in pings:
         toast_title, toast_body = format_toast(ping, user_id=user_id)
-        send_toast(toast_title, toast_body)
+        send_toast(toast_title, toast_body, jump_url=message_jump_url(ping))
         embeds.append(_build_embed(ping, user_id=user_id))
 
     if embeds:

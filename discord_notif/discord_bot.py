@@ -48,6 +48,31 @@ def run(db_path: Path, token: str, ready_event: threading.Event | None = None) -
     return 0
 
 
+async def _validate_async(token: str) -> str | None:
+    """Login-only check; returns bot username or None if the token is rejected."""
+    import discord
+    client = discord.Client(intents=discord.Intents.none())
+    try:
+        await client.login(token)
+        return str(client.user) if client.user else "Bot"
+    except discord.LoginFailure:
+        return None
+    except Exception:
+        return None
+    finally:
+        if not client.is_closed():
+            await client.close()
+
+
+def test_token(token: str) -> str | None:
+    """Synchronous token check. Returns bot username if valid, None if invalid."""
+    import asyncio
+    try:
+        return asyncio.run(_validate_async(token))
+    except Exception:
+        return None
+
+
 if __name__ == "__main__":
     # For manual testing only
     import os

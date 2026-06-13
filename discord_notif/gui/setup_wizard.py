@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PyQt6.QtCore import Qt
+import threading
+
+from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QColor, QPixmap
 from PyQt6.QtWidgets import (
     QDialog, QFileDialog, QLabel, QLineEdit, QComboBox,
@@ -38,7 +40,7 @@ class SetupWizard(QWizard):
         layout.addStretch()
         self.welcome_page.setLayout(layout)
         
-        # Screen 2: Discord Token
+        # Screen 2: Discord Bot Token
         self.token_page = QWizardPage()
         self.token_page.setTitle("Discord Bot Token")
         layout = QVBoxLayout()
@@ -46,6 +48,15 @@ class SetupWizard(QWizard):
         self.token_input = QLineEdit()
         self.token_input.setEchoMode(QLineEdit.EchoMode.Password)
         layout.addWidget(self.token_input)
+
+        test_row = QHBoxLayout()
+        self._wizard_test_btn = QPushButton("Test Token")
+        self._wizard_test_btn.clicked.connect(self._test_wizard_token)
+        self._wizard_token_status = QLabel("")
+        test_row.addWidget(self._wizard_test_btn)
+        test_row.addWidget(self._wizard_token_status)
+        test_row.addStretch()
+        layout.addLayout(test_row)
         layout.addStretch()
         self.token_page.setLayout(layout)
         
@@ -99,6 +110,38 @@ class SetupWizard(QWizard):
         
         self.finished.connect(self._on_finished)
     
+    def _test_wizard_token(self) -> None:
+        token = self.token_input.text().strip()
+        if not token:
+            self._wizard_token_status.setText("Enter a token first.")
+            return
+        self._wizard_test_btn.setEnabled(False)
+        self._wizard_token_status.setText("Testing…")
+        self._wizard_token_status.setStyleSheet("")
+        result: dict = {"value": ..., "done": False}
+
+        def _run() -> None:
+            from .. import discord_bot
+            result["value"] = discord_bot.test_token(token)
+            result["done"] = True
+
+        threading.Thread(target=_run, daemon=True).start()
+
+        def _poll() -> None:
+            if not result["done"]:
+                QTimer.singleShot(200, _poll)
+                return
+            self._wizard_test_btn.setEnabled(True)
+            name = result["value"]
+            if name:
+                self._wizard_token_status.setText(f"✓ Connected as {name}")
+                self._wizard_token_status.setStyleSheet("color: green;")
+            else:
+                self._wizard_token_status.setText("✗ Invalid token")
+                self._wizard_token_status.setStyleSheet("color: red;")
+
+        QTimer.singleShot(200, _poll)
+
     def _choose_cache_location(self) -> None:
         path = QFileDialog.getExistingDirectory(self, "Select Cache Location")
         if path:
@@ -107,9 +150,7 @@ class SetupWizard(QWizard):
     def _on_finished(self) -> None:
         token = self.token_input.text().strip()
         user_id = self.user_id_input.text().strip()
-        cache_path = self.cache_input.text().strip() or str(
-            Path.home() / "AppData" / "Local" / "DiscordPingNotifier" / "discord_cache.db"
-        )
+        cache_path = self.cache_input.text().strip() or str(config.APPDATA / "discord_cache.db")
         scan_freq = self.freq_spin.value()
         
         if not token or not user_id:

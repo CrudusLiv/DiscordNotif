@@ -53,6 +53,8 @@ class SystemTrayApp:
             name="ScannerThread"
         )
         self.scan_thread.start()
+
+        threading.Thread(target=self._check_for_updates, daemon=True, name="UpdateCheck").start()
     
     def _show_dashboard(self) -> None:
         if self.dashboard is None:
@@ -64,6 +66,28 @@ class SystemTrayApp:
         dialog = SettingsDialog()
         dialog.exec()
     
+    def _check_for_updates(self) -> None:
+        try:
+            import json
+            import urllib.request
+            from .. import __version__
+            req = urllib.request.Request(
+                "https://api.github.com/repos/CrudusLiv/DiscordNotif/releases/latest",
+                headers={"Accept": "application/vnd.github+json", "User-Agent": "DiscordPingNotifier"},
+            )
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read())
+            tag = data.get("tag_name", "").lstrip("v")
+            if tag and tag != __version__:
+                self.tray_icon.showMessage(
+                    "Update Available",
+                    f"v{tag} is available — you have v{__version__}.\nVisit GitHub to download.",
+                    QSystemTrayIcon.MessageIcon.Information,
+                    8000,
+                )
+        except Exception:
+            pass
+
     def _refresh_tooltip(self) -> None:
         state = main._state
         status = "Connected" if state.get("bot_connected") else "Disconnected"
