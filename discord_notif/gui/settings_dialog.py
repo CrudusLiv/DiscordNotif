@@ -54,6 +54,11 @@ class SettingsDialog(QDialog):
         self.freq_input.setCurrentText(str(cfg.get("scan_frequency_minutes", 15)))
         form.addRow("Scan Frequency (min):", self.freq_input)
 
+        self.retention_input = QComboBox()
+        self.retention_input.addItems(["7", "14", "30", "90"])
+        self.retention_input.setCurrentText(str(cfg.get("retention_days", 7)))
+        form.addRow("Keep messages (days):", self.retention_input)
+
         self.startup_checkbox = QCheckBox("Run on Windows startup")
         self.startup_checkbox.setChecked(config.get_startup())
         form.addRow("", self.startup_checkbox)
@@ -111,16 +116,22 @@ class SettingsDialog(QDialog):
         token = self.token_input.text().strip()
         cache_path = self.cache_input.text().strip()
         scan_freq = int(self.freq_input.currentText())
-        
+        retention_days = int(self.retention_input.currentText())
+
+        if not user_id:
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.warning(self, "Validation", "User ID cannot be empty.")
+            return
+
         if token:
             credential_mgr.save_token(token)
-        
+
         cfg = config.load()
-        if user_id:
-            cfg["user_id"] = user_id
+        cfg["user_id"] = user_id
         if cache_path:
             cfg["cache_location"] = cache_path
         cfg["scan_frequency_minutes"] = scan_freq
+        cfg["retention_days"] = retention_days
         config.save(cfg)
 
         if self.startup_checkbox.isChecked():

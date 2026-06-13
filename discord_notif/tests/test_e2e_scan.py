@@ -56,21 +56,72 @@ def test_full_scan_detects_mention(tmp_path):
     assert "999" in recent[0]["content"]
 
 
-def test_scan_pings_basic(tmp_path):
-    """Test basic scan_pings functionality."""
+def test_scan_pings_detects_mention(tmp_path):
+    """scan_pings must return the mention on the first scan."""
     db = tmp_path / "discord_cache.db"
     state_file = tmp_path / "state.json"
     user_id = "999"
-    
-    # Store a message
+
     msg = _make_message("111", user_id, author_id="888")
     discord_int._store_message(msg, self_id=user_id, db_path=db)
-    
-    # First scan - should find the message if state is clean
+
     pings = scan_pings(db, user_id=user_id, state_path=state_file)
-    # Note: actual detection depends on scan_pings' internal logic
-    # Just verify it runs without error
-    assert isinstance(pings, list)
+    assert len(pings) == 1
+    assert pings[0]["author_id"] == "888"
+    assert f"<@{user_id}>" in pings[0]["content"]
+
+
+def test_scan_pings_no_duplicate(tmp_path):
+    """The same message must not be returned on a second scan."""
+    db = tmp_path / "discord_cache.db"
+    state_file = tmp_path / "state.json"
+    user_id = "999"
+
+    discord_int._store_message(
+        _make_message("111", user_id, author_id="888"), self_id=user_id, db_path=db
+    )
+
+    first = scan_pings(db, user_id=user_id, state_path=state_file)
+    second = scan_pings(db, user_id=user_id, state_path=state_file)
+
+    assert len(first) == 1
+    assert len(second) == 0
+
+
+def test_scan_pings_reply_detection(tmp_path):
+    """A reply to the user's message is detected even without a mention token."""
+    db = tmp_path / "discord_cache.db"
+    state_file = tmp_path / "state.json"
+    user_id = "999"
+
+    # Build a reply: no mention in content, but referenced_author_id = user_id
+    msg = MagicMock()
+    msg.id = 222
+    msg.author.id = 888
+    msg.author.name = "Replier"
+    msg.author.bot = False
+    msg.channel.id = 123
+    msg.channel.name = "general"
+    msg.guild = MagicMock()
+    msg.guild.id = 456
+    msg.guild.name = "TestGuild"
+    msg.content = "sure thing"  # no mention token
+
+    now = time.time()
+    msg.created_at = MagicMock()
+    msg.created_at.replace.return_value.timestamp.return_value = now
+
+    ref = MagicMock()
+    ref.message_id = 100
+    ref.resolved = MagicMock()
+    ref.resolved.author.id = int(user_id)
+    msg.reference = ref
+
+    discord_int._store_message(msg, self_id=user_id, db_path=db)
+
+    pings = scan_pings(db, user_id=user_id, state_path=state_file)
+    assert len(pings) == 1
+    assert pings[0]["author_id"] == "888"
 
 
 def test_db_stores_and_retrieves_messages(tmp_path):

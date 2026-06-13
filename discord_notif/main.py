@@ -35,6 +35,8 @@ def run_headless(stop_event=None) -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
     scan_interval = int(cfg.get("scan_frequency_minutes", 15)) * 60
+    retention_days = int(cfg.get("retention_days", 7))
+    seen_ttl_sec = retention_days * 86400
     state_path = db_path.parent / "discord_last_tick.json"
 
     ready_event = threading.Event()
@@ -54,7 +56,9 @@ def run_headless(stop_event=None) -> None:
     while True:
         print(f"[scan] running — db={db_path} user_id={user_id}", flush=True)
         try:
-            pings = scan_pings(db_path, user_id=user_id, state_path=state_path)
+            from .discord_int import prune as _prune
+            _prune(retention_days=retention_days, db_path=db_path)
+            pings = scan_pings(db_path, user_id=user_id, state_path=state_path, seen_ttl_sec=seen_ttl_sec)
             _state["last_scan_at"] = time.time()
             print(f"[scan] found {len(pings)} new ping(s)", flush=True)
             if pings:

@@ -52,6 +52,7 @@ def scan_pings(
     user_id: str,
     state_path: Path,
     now: Optional[float] = None,
+    seen_ttl_sec: int = SEEN_TTL_SEC,
 ) -> list[dict]:
     """Return list of new ping rows since last tick, mark them seen, persist state."""
     if now is None:
@@ -68,7 +69,7 @@ def scan_pings(
 
     conn = sqlite3.connect(str(db_path))
     conn.row_factory = sqlite3.Row
-    cutoff = now - SEEN_TTL_SEC
+    cutoff = now - seen_ttl_sec
     try:
         # Tolerate older caches that haven't been migrated yet — if the reply
         # columns are missing, fall back to the mention-only scan.

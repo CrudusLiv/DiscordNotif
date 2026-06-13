@@ -14,6 +14,7 @@ DEFAULTS: dict = {
     "scan_frequency_minutes": 15,
     "cache_location": str(APPDATA / "discord_cache.db"),
     "service_installed": False,
+    "retention_days": 7,
 }
 
 
