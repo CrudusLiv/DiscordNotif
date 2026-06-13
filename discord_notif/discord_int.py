@@ -53,6 +53,7 @@ def _connect(db_path: Path | None = None) -> sqlite3.Connection:
     path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(path))
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL")
     conn.executescript(SCHEMA)
     # Migrate older caches that pre-date the reply-tracking columns.
     cols = {row[1] for row in conn.execute("PRAGMA table_info(messages)").fetchall()}

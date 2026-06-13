@@ -5,6 +5,12 @@ import threading
 import time
 from pathlib import Path
 
+# Shared state read by the tray icon to build its tooltip.
+_state: dict = {
+    "bot_connected": False,
+    "last_scan_at": None,  # float unix timestamp
+}
+
 
 def run_headless(stop_event=None) -> None:
     """Run bot + ping scanner loop indefinitely (no GUI).
@@ -42,11 +48,14 @@ def run_headless(stop_event=None) -> None:
     bot_thread.start()
     if not ready_event.wait(timeout=30):
         print("Warning: bot did not connect within 30 s, proceeding anyway.", file=sys.stderr)
+    else:
+        _state["bot_connected"] = True
 
     while True:
         print(f"[scan] running — db={db_path} user_id={user_id}", flush=True)
         try:
             pings = scan_pings(db_path, user_id=user_id, state_path=state_path)
+            _state["last_scan_at"] = time.time()
             print(f"[scan] found {len(pings)} new ping(s)", flush=True)
             if pings:
                 for ping in pings:

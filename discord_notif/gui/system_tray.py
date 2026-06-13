@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import threading
+import time
 from pathlib import Path
 
 from PyQt6.QtCore import QTimer
@@ -37,9 +38,14 @@ class SystemTrayApp:
         menu.addAction("Quit", self._quit)
         
         self.tray_icon.setContextMenu(menu)
-        self.tray_icon.setToolTip("Discord Ping Notifier")
+        self.tray_icon.setToolTip("Discord Ping Notifier · Connecting...")
         self.tray_icon.show()
-        
+
+        # Refresh tooltip every 30 s with live bot/scan status
+        self._tooltip_timer = QTimer()
+        self._tooltip_timer.timeout.connect(self._refresh_tooltip)
+        self._tooltip_timer.start(30_000)
+
         # Start scanner in background
         self.scan_thread = threading.Thread(
             target=main.run_headless,
@@ -58,7 +64,24 @@ class SystemTrayApp:
         dialog = SettingsDialog()
         dialog.exec()
     
+    def _refresh_tooltip(self) -> None:
+        state = main._state
+        status = "Connected" if state.get("bot_connected") else "Disconnected"
+        last = state.get("last_scan_at")
+        if last is None:
+            scan_part = "never scanned"
+        else:
+            elapsed = int(time.time() - last)
+            if elapsed < 60:
+                scan_part = "scanned just now"
+            elif elapsed < 3600:
+                scan_part = f"scanned {elapsed // 60}m ago"
+            else:
+                scan_part = f"scanned {elapsed // 3600}h ago"
+        self.tray_icon.setToolTip(f"Discord Ping Notifier · {status} · {scan_part}")
+
     def _quit(self) -> None:
+        self._tooltip_timer.stop()
         if self.dashboard:
             self.dashboard.close()
         self.tray_icon.hide()
